@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knight Rider LED Scanner - Virtual Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #ff4500;
+        }
+        .led-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 50px 0;
+        }
+        .led {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #333;
+            margin: 0 10px;
+            transition: background-color 0.1s;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .led.active {
+            background-color: #ff0000;
+            box-shadow: 0 0 20px #ff0000;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #ff4500;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #ff6500;
+        }
+        .status {
+            margin: 20px 0;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Knight Rider LED Scanner</h1>
+    <p>Virtual LED Visualization</p>
+    <p><strong>Instructions:</strong> Start your ESP32C3 simulation in Wokwi, then click "Start" here to sync the virtual LEDs with your hardware.</p>
+
+    <div class="led-container">
+        <div class="led" id="led1"></div>
+        <div class="led" id="led2"></div>
+        <div class="led" id="led3"></div>
+        <div class="led" id="led4"></div>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="stopBtn">Stop</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+
+    <div class="status" id="status">Ready to start</div>
+
+    <script>
+        const leds = [
+            document.getElementById('led1'),
+            document.getElementById('led2'),
+            document.getElementById('led3'),
+            document.getElementById('led4')
+        ];
+
+        const status = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let intervalId = null;
+        let cycleCount = 0;
+        let direction = 1; // 1 for left to right, -1 for right to left
+        let currentLed = 0;
+        let ws = null;
+
+        // Connect to WebSocket for real-time updates
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8765');
+            
+            ws.onopen = function(event) {
+                console.log('WebSocket connected');
+                status.textContent += ' (Real-time connected)';
+            };
+            
+            ws.onmessage = function(event) {
+                const message = event.data;
+                console.log('Received:', message);
+                
+                if (message.startsWith('led_on:')) {
+                    const ledNum = parseInt(message.split(':')[1]) - 1;
+                    if (ledNum >= 0 && ledNum < leds.length) {
+                        leds.forEach(led => led.classList.remove('active'));
+                        leds[ledNum].classList.add('active');
+                    }
+                } else if (message.startsWith('led_off:')) {
+                    const ledNum = parseInt(message.split(':')[1]) - 1;
+                    if (ledNum >= 0 && ledNum < leds.length) {
+                        leds[ledNum].classList.remove('active');
+                    }
+                } else if (message.startsWith('cycle:')) {
+                    cycleCount = parseInt(message.split(':')[1]);
+                    status.textContent = `Cycle #${cycleCount} - Real-time mode`;
+                }
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                status.textContent = status.textContent.replace(' (Real-time connected)', '');
+                // Try to reconnect after 1 second
+                setTimeout(connectWebSocket, 1000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Try to connect to WebSocket on page load
+        connectWebSocket();
+
+        function updateLEDs() {
+            // Turn off all LEDs
+            leds.forEach(led => led.classList.remove('active'));
+
+            // Turn on current LED
+            leds[currentLed].classList.add('active');
+
+            // Update status
+            const directionText = direction === 1 ? 'Left to Right' : 'Right to Left';
+            status.textContent = `Cycle #${cycleCount + 1} - Moving: ${directionText} - LED ${currentLed + 1} ON`;
+
+            // Move to next LED
+            currentLed += direction;
+
+            // Check if we need to change direction
+            if (currentLed >= leds.length) {
+                // Reached the end, pause and reverse
+                setTimeout(() => {
+                    direction = -1;
+                    currentLed = leds.length - 1;
+                    cycleCount++;
+                }, 200);
+            } else if (currentLed < 0) {
+                // Reached the start, pause and reverse
+                setTimeout(() => {
+                    direction = 1;
+                    currentLed = 0;
+                    cycleCount++;
+                }, 200);
+            }
+        }
+
+        function startScanner() {
+            if (intervalId) return;
+
+            cycleCount = 0;
+            direction = 1;
+            currentLed = 0;
+
+            intervalId = setInterval(updateLEDs, 100);
+            status.textContent = 'Scanner started';
+        }
+
+        function stopScanner() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+                status.textContent = 'Scanner stopped';
+            }
+        }
+
+        function resetScanner() {
+            stopScanner();
+            leds.forEach(led => led.classList.remove('active'));
+            cycleCount = 0;
+            currentLed = 0;
+            direction = 1;
+            status.textContent = 'Reset - Ready to start';
+        }
+
+        startBtn.addEventListener('click', startScanner);
+        stopBtn.addEventListener('click', stopScanner);
+        resetBtn.addEventListener('click', resetScanner);
+
+        // Auto-start for demo
+        // setTimeout(startScanner, 1000);
+    </script>
+</body>
+</html>
