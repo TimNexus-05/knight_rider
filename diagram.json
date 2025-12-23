@@ -1,0 +1,117 @@
+{
+    "version": 1,
+    "editor": "wokwi",
+    "parts": [
+        {
+            "type": "board-esp32-c3-devkitm-1",
+            "id": "esp",
+            "top": 0.59,
+            "left": 0.67,
+            "attrs": {
+                "flashSize": "16"
+            }
+        },
+        {
+            "type": "wokwi-led",
+            "id": "led0",
+            "top": -50.4,
+            "left": 153.6,
+            "attrs": {
+                "color": "red"
+            }
+        },
+        {
+            "type": "wokwi-led",
+            "id": "led1",
+            "top": -50.4,
+            "left": 192,
+            "attrs": {
+                "color": "red"
+            }
+        },
+        {
+            "type": "wokwi-led",
+            "id": "led2",
+            "top": -50.4,
+            "left": 230.4,
+            "attrs": {
+                "color": "red"
+            }
+        },
+        {
+            "type": "wokwi-led",
+            "id": "led3",
+            "top": -50.4,
+            "left": 268.8,
+            "attrs": {
+                "color": "red"
+            }
+        }
+    ],
+    "connections": [
+        [
+            "esp:TX",
+            "$serialMonitor:RX",
+            "",
+            []
+        ],
+        [
+            "esp:RX",
+            "$serialMonitor:TX",
+            "",
+            []
+        ],
+        [
+            "esp:2",
+            "led0:A",
+            "green",
+            [ "v0" ]
+        ],
+        [
+            "esp:3",
+            "led1:A",
+            "green",
+            [ "v0" ]
+        ],
+        [
+            "esp:4",
+            "led2:A",
+            "green",
+            [ "v0" ]
+        ],
+        [
+            "esp:5",
+            "led3:A",
+            "green",
+            [ "v0" ]
+        ],
+        [
+            "led0:C",
+            "esp:GND.1",
+            "black",
+            [ "v0" ]
+        ],
+        [
+            "led1:C",
+            "esp:GND.1",
+            "black",
+            [ "v0" ]
+        ],
+        [
+            "led2:C",
+            "esp:GND.1",
+            "black",
+            [ "v0" ]
+        ],
+        [
+            "led3:C",
+            "esp:GND.1",
+            "black",
+            [ "v0" ]
+        ]
+    ],
+    "serialMonitor": {
+        "display": "terminal",
+        "convertEol": true
+    }
+}
